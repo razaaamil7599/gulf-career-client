@@ -1,0 +1,33 @@
+.site-footer {
+    background-color: #333;
+    color: #fff;
+    padding: 30px 0;
+    margin-top: 50px;
+}
+
+.footer-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px;
+    text-align: center;
+}
+
+.footer-links {
+    margin-bottom: 15px;
+}
+
+.footer-links a {
+    color: #fff;
+    margin: 0 15px;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.footer-links a:hover {
+    color: #6FB1FC;
+}
+
+.copyright {
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
