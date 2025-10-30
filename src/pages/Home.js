@@ -1,9 +1,8 @@
-// src/pages/Home.js (Final Code)
+// src/pages/Home.js (FINAL CORRECTED CODE)
 import React, { useState, useEffect } from 'react';
 import '../App.css';
 
 function Home() {
-    // ... (saare states waise hi rahenge) ...
     const [vacancies, setVacancies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -49,7 +48,6 @@ function Home() {
         fetchVacancies();
     }, [searchTerm, filterCountry, filterCategory]);
 
-    // ... (baaki saara code bilkul waisa hi rahega) ...
     const handleSearchChange = (event) => setSearchTerm(event.target.value);
     const handleCountryChange = (event) => setFilterCountry(event.target.value);
     const handleCategoryChange = (event) => setFilterCategory(event.target.value);
