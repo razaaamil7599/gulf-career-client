@@ -48,6 +48,7 @@ function Home() {
         fetchVacancies();
     }, [searchTerm, filterCountry, filterCategory]);
 
+    // ... baaki saara code bilkul waisa hi rahega ...
     const handleSearchChange = (event) => setSearchTerm(event.target.value);
     const handleCountryChange = (event) => setFilterCountry(event.target.value);
     const handleCategoryChange = (event) => setFilterCategory(event.target.value);
