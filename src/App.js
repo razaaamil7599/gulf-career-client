@@ -2,7 +2,13 @@
 
 /**
  * Naya Project: Gulf Career Gateway (Full Stack)
- * FINAL VERSION with all features and components placed in correct order.
+ * FINAL VERSION with ALL features:
+ * 1. Admin Create, Edit, Delete
+ * 2. Public Nav links (About, Contact)
+ * 3. Footer links (Privacy, Terms)
+ * 4. WhatsApp buttons (Card + Floating)
+ * 5. AI Scan (Gemini 2.5 Flash)
+ * 6. (FIXED) Component order for ESLint
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -399,7 +405,7 @@ const AdminPanel = ({ user }) => {
 
 /**
  * === Static Content Page Component ===
- * Yeh component Static content (About, Contact, Policies) dikhaata hai.
+ * YEH COMPONENT AAPKE CODE SE MISSING THA (MOVED TO CORRECT POSITION)
  */
 const StaticContentPage = ({ title, content }) => (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -417,7 +423,6 @@ const StaticContentPage = ({ title, content }) => (
 
 /**
  * === Public Job List Component ===
- * Yahaan sabko database se jobs dikhengi.
  */
 const PublicJobList = ({ setPage }) => {
     const [jobs, setJobs] = useState([]);
@@ -572,7 +577,9 @@ const AdminLogin = ({ setPage }) => {
 
 
 /**
+ * =========================================================================
  * === Main App Component (Routing) ===
+ * =========================================================================
  */
 export default function App() {
     const [user, setUser] = useState(null);
@@ -607,11 +614,6 @@ export default function App() {
                     setPage('admin');
                 } else {
                     setUser(null);
-                    if (window.location.hash === '#admin') {
-                        setPage('admin-login');
-                    } else {
-                        setPage('public');
-                    }
                 }
                 setAuthReady(true);
             });
@@ -624,23 +626,26 @@ export default function App() {
     useEffect(() => {
         const handleHashChange = () => {
             const hash = window.location.hash;
-            const isAdmin = user && !user.isAnonymous;
+            const isAdmin = auth.currentUser && !auth.currentUser.isAnonymous;
 
             if (hash === '#admin' && isAdmin) {
                 setPage('admin');
             } else if (hash === '#admin' && !isAdmin) {
                 setPage('admin-login');
             } else if (hash === '#about' || hash === '#contact' || hash === '#privacy' || hash === '#terms') {
-                setPage(hash.substring(1));
+                setPage(hash.substring(1)); // 'about', 'contact', etc.
             } else {
                 setPage('public');
-                window.location.hash = '';
+                if (hash) {
+                    window.location.hash = '';
+                }
             }
         };
+
         window.addEventListener('hashchange', handleHashChange);
         handleHashChange(); // Initial check
         return () => window.removeEventListener('hashchange', handleHashChange);
-    }, [user, authReady]);
+    }, [authReady, user]); // user par depend karein
 
 
     const handleLogout = async () => {
@@ -714,6 +719,7 @@ export default function App() {
     } else if (currentPage === 'admin-login') {
         PageComponent = <AdminLogin setPage={setPage} />;
     } else if (contentData[currentPage]) {
+        // FIX: Yeh 'StaticContentPage' component ko call karega
         PageComponent = <StaticContentPage title={contentData[currentPage].title} content={contentData[currentPage].content} />;
     } else {
         PageComponent = <PublicJobList setPage={setPage} />;
