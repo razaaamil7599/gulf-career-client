@@ -1,15 +1,11 @@
 /* global __firebase_config, __app_id, __initial_auth_token */
 
 /**
- * Naya Project: Gulf Career Gateway (Full Stack)
- * FINAL VERSION with ALL features:
- * 1. Admin Create, Edit, Delete
- * 2. Public Nav links (About, Contact)
- * 3. Footer links (Privacy, Terms)
- * 4. WhatsApp buttons (Card + Floating)
- * 5. AI Scan (Gemini 2.5 Flash)
- * 6. (FIXED) Component order for ESLint
- */
+* Gulf Career Gateway - App.js (patched to use Cloudinary unsigned upload)
+*
+* Changes:
+* - (FIXED) PublicJobList <img> height increased from h-32 to h-48 for bigger image.
+*/
 
 import React, { useState, useEffect, useRef } from 'react';
 
@@ -32,10 +28,14 @@ import {
     onSnapshot,
     doc,
     setDoc,
-    deleteDoc
+    deleteDoc,
+    getDoc
 } from "firebase/firestore";
 
-// Google Generative AI SDK import
+// Cloudinary upload helper
+import { uploadToCloudinary } from './upload-cloudinary';
+
+// Google Generative AI SDK import (kept for AI scan usage)
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // --------- CONFIGURATION (Final) ---------
@@ -68,27 +68,38 @@ if (firebaseConfig.apiKey === "FALLBACK_API_KEY" || firebaseConfig.apiKey === "I
     db = getFirestore(app);
 }
 
-// WhatsApp Number (Common for all links/buttons)
+// Global fallback WhatsApp number (will be overridden by settings if present)
 const WHATSAPP_NUMBER = "971501234567";
 const GEMINI_API_KEY = process.env.REACT_APP_GEMINI_API_KEY || "";
 
+// Cloudinary config (set to your values)
+const CLOUDINARY_CLOUD = 'ddisi6e7m';
+const CLOUDINARY_PRESET = 'GULFCAREER';
 
 /**
- * =========================================================================
- * === COMPONENT DEFINITIONS (Must be before App() function) ================
- * =========================================================================
- */
+* =========================================================================
+* === COMPONENT DEFINITIONS (Must be before App() function) ================
+* =========================================================================
+*/
 
 /**
- * === Admin Panel Component ===
- */
+* === Admin Panel Component ===
+*/
 const AdminPanel = ({ user }) => {
     // Job Creation/Edit Form States
     const [jobId, setJobId] = useState(null);
     const [jobTitle, setJobTitle] = useState("");
     const [jobCompany, setJobCompany] = useState("");
     const [jobDescription, setJobDescription] = useState("");
+    const [jobWhatsapp, setJobWhatsapp] = useState("");
+    const [jobImageUrl, setJobImageUrl] = useState(""); // existing image url for edit
+
     const [jobs, setJobs] = useState([]);
+
+    // Settings (site-wide contact)
+    const [siteWhatsapp, setSiteWhatsapp] = useState("");
+    const [siteContactEmail, setSiteContactEmail] = useState("");
+    const [settingsLoaded, setSettingsLoaded] = useState(false);
 
     // Other States
     const [imageFile, setImageFile] = useState(null);
@@ -96,19 +107,20 @@ const AdminPanel = ({ user }) => {
     const [scanError, setScanError] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     const [loadingJobs, setLoadingJobs] = useState(true);
+    const [savingSettings, setSavingSettings] = useState(false);
 
     const fileInputRef = useRef(null);
     const jobsCollectionPath = `/artifacts/${appId}/public/data/jobs`;
+    const settingsDocRef = doc(db, `/artifacts/${appId}/public/data/settings`, "site");
 
-    // --- Job Fetching (For Admin Management List) ---
+    // --- Load Jobs ---
     useEffect(() => {
         if (!db) return;
         const q = query(collection(db, jobsCollectionPath));
-
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
             const jobsData = [];
-            querySnapshot.forEach((doc) => {
-                jobsData.push({ id: doc.id, ...doc.data() });
+            querySnapshot.forEach((docSnap) => {
+                jobsData.push({ id: docSnap.id, ...docSnap.data() });
             });
             jobsData.sort((a, b) => (b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0)) - (a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0)));
             setJobs(jobsData);
@@ -121,8 +133,29 @@ const AdminPanel = ({ user }) => {
         return () => unsubscribe();
     }, []);
 
+    // --- Load Site Settings (default contact) ---
+    useEffect(() => {
+        if (!db) return;
+        let mounted = true;
+        const loadSettings = async () => {
+            try {
+                const snap = await getDoc(settingsDocRef);
+                if (snap.exists() && mounted) {
+                    const data = snap.data();
+                    setSiteWhatsapp(data.whatsapp_number || "");
+                    setSiteContactEmail(data.contact_email || "");
+                }
+            } catch (err) {
+                console.error("Settings load error:", err);
+            } finally {
+                if (mounted) setSettingsLoaded(true);
+            }
+        };
+        loadSettings();
+        return () => { mounted = false; };
+    }, []);
 
-    // --- AI Scan Logic (FIXED) ---
+    // --- AI Scan Logic (keeps same behavior: fills fields) ---
     const toBase64 = (file) => new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -141,6 +174,7 @@ const AdminPanel = ({ user }) => {
         setJobTitle("");
         setJobCompany("");
         setJobDescription("");
+        // Do not clear jobWhatsapp or jobImageUrl so admin can keep them
 
         try {
             const base64ImageData = await toBase64(imageFile);
@@ -173,7 +207,6 @@ const AdminPanel = ({ user }) => {
                 }
             };
 
-            // FIX: 'generationConfig' is the correct key for direct fetch.
             const payload = {
                 contents: [
                     {
@@ -199,7 +232,6 @@ const AdminPanel = ({ user }) => {
                 body: JSON.stringify(payload)
             });
 
-
             if (!response.ok) {
                 const errorBody = await response.json();
                 console.error("Gemini API Error Body:", errorBody);
@@ -207,7 +239,6 @@ const AdminPanel = ({ user }) => {
             }
 
             const result = await response.json();
-
             const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
             const cleanedJsonText = jsonText ? jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '') : null;
 
@@ -226,9 +257,99 @@ const AdminPanel = ({ user }) => {
         } finally {
             setIsScanning(false);
         }
-    }
+    };
 
-    // --- Delete Logic ---
+    // --- Normalize helper for WhatsApp ---
+    const normalizeWhatsapp = (raw) => {
+        if (!raw) return "";
+        const digits = raw.replace(/\D/g, '');
+        return digits;
+    };
+
+    // --- Create/Edit/Save Logic (with Cloudinary image upload) ---
+    const handleJobUpload = async (e) => {
+        e.preventDefault();
+        if (!jobTitle) {
+            alert("Job title zaroori hai.");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const normalizedWhatsapp = normalizeWhatsapp(jobWhatsapp);
+
+            // If editing, keep the same doc ref; else create new doc
+            let imageUrlToSave = jobImageUrl || "";
+
+            // If an image file is selected, upload it to Cloudinary and overwrite image_url
+            if (imageFile) {
+                try {
+                    // Use Cloudinary unsigned upload
+                    imageUrlToSave = await uploadToCloudinary(imageFile, CLOUDINARY_CLOUD, CLOUDINARY_PRESET);
+                } catch (uploadErr) {
+                    console.error("Cloudinary upload failed:", uploadErr);
+                    alert("Image upload mein error hua. Job save nahi hua.");
+                    setIsUploading(false);
+                    return;
+                }
+            }
+
+            const jobData = {
+                title: jobTitle,
+                company: jobCompany,
+                description: jobDescription,
+                whatsapp_number: normalizedWhatsapp,
+                image_url: imageUrlToSave || "",
+                updatedAt: new Date()
+            };
+
+            if (jobId) {
+                // Update existing
+                await setDoc(doc(db, jobsCollectionPath, jobId), jobData, { merge: true });
+                alert("Job safaltapoorvak Edit ho gayi!");
+            } else {
+                // Create new job
+                await addDoc(collection(db, jobsCollectionPath), {
+                    ...jobData,
+                    createdAt: new Date()
+                });
+                alert("Nayi job safaltapoorvak add ho gayi!");
+            }
+
+            // Reset form
+            setJobId(null);
+            setJobTitle("");
+            setJobCompany("");
+            setJobDescription("");
+            setJobWhatsapp("");
+            setJobImageUrl("");
+            setImageFile(null);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+
+        } catch (error) {
+            console.error("Job Upload Error:", error);
+            alert("Job upload/edit karne mein error hua.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    // --- Edit existing job: populate fields including image_url ---
+    const handleEdit = (job) => {
+        setJobId(job.id);
+        setJobTitle(job.title);
+        setJobCompany(job.company);
+        setJobDescription(job.description);
+        setJobWhatsapp(job.whatsapp_number || "");
+        setJobImageUrl(job.image_url || "");
+        setScanError(null);
+        // clear file input selection (imageFile should be null until user chooses a new file)
+        setImageFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // --- Delete job ---
     const handleDelete = async (id, title) => {
         if (!window.confirm(`Kya aap sach mein '${title}' job ko delete karna chahte hain?`)) {
             return;
@@ -242,70 +363,37 @@ const AdminPanel = ({ user }) => {
         }
     };
 
-    // --- Edit Logic ---
-    const handleEdit = (job) => {
-        setJobId(job.id);
-        setJobTitle(job.title);
-        setJobCompany(job.company);
-        setJobDescription(job.description);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    // --- Save Site Settings ---
+    const handleSaveSettings = async (e) => {
+        e.preventDefault();
+        setSavingSettings(true);
+        try {
+            const normalized = normalizeWhatsapp(siteWhatsapp);
+            await setDoc(settingsDocRef, {
+                whatsapp_number: normalized,
+                contact_email: siteContactEmail,
+                updatedAt: new Date()
+            }, { merge: true });
+            alert("Settings save ho gaye.");
+        } catch (err) {
+            console.error("Settings save error:", err);
+            alert("Settings save karne mein error hua.");
+        } finally {
+            setSavingSettings(false);
+        }
     };
 
-    // --- UI Reset ---
+    // --- Reset job form ---
     const handleReset = () => {
         setJobId(null);
         setJobTitle("");
         setJobCompany("");
         setJobDescription("");
+        setJobWhatsapp("");
+        setJobImageUrl("");
         setScanError(null);
         setImageFile(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
-    };
-
-    // --- Create/Edit/Save Logic ---
-    const handleJobUpload = async (e) => {
-        e.preventDefault();
-        if (!jobTitle) {
-            alert("Job title zaroori hai.");
-            return;
-        }
-
-        setIsUploading(true);
-        try {
-            const jobData = {
-                title: jobTitle,
-                company: jobCompany,
-                description: jobDescription,
-                updatedAt: new Date()
-            };
-
-            if (jobId) {
-                // Editing existing job (UPDATE)
-                await setDoc(doc(db, jobsCollectionPath, jobId), jobData, { merge: true });
-                alert("Job safaltapoorvak Edit ho gayi!");
-            } else {
-                // Creating new job (CREATE)
-                await addDoc(collection(db, jobsCollectionPath), {
-                    ...jobData,
-                    createdAt: new Date()
-                });
-                alert("Nayi job safaltapoorvak add ho gayi!");
-            }
-
-            // Form ko reset karein
-            setJobId(null);
-            setJobTitle("");
-            setJobCompany("");
-            setJobDescription("");
-            setImageFile(null);
-            if (fileInputRef.current) fileInputRef.current.value = "";
-
-        } catch (error) {
-            console.error("Job Upload Error:", error);
-            alert("Job upload/edit karne mein error hua.");
-        } finally {
-            setIsUploading(false);
-        }
     };
 
     return (
@@ -323,30 +411,40 @@ const AdminPanel = ({ user }) => {
                     </button>
                 )}
 
-                {/* Section 1 & 2: AI Scan */}
+                {/* Section: Image (AI Scan) */}
                 <div className="flex space-x-4 mb-6 items-end">
                     <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Vacancy Image (AI Scan)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Vacancy Image (AI Scan / Upload)</label>
                         <input
                             type="file"
                             accept="image/png, image/jpeg, image/webp"
                             ref={fileInputRef}
-                            onChange={(e) => setImageFile(e.target.files[0])}
+                            onChange={(e) => {
+                                const f = e.target.files[0];
+                                setImageFile(f || null);
+                            }}
                             className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                         />
+                        {jobImageUrl && !imageFile && (
+                            <p className="text-xs text-gray-500 mt-2">Existing image attached: <a href={jobImageUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View</a></p>
+                        )}
                     </div>
-                    <button
-                        onClick={scanImageWithAI}
-                        disabled={isScanning || !imageFile}
-                        className={`px-6 py-2 h-10 font-semibold rounded-lg text-white ${isScanning ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"} transition duration-300 disabled:opacity-50`}
-                    >
-                        {isScanning ? "Scanning..." : "AI Scan"}
-                    </button>
+                    <div className="flex flex-col space-y-2">
+                        <button
+                            onClick={scanImageWithAI}
+                            disabled={isScanning || !imageFile}
+                            className={`px-6 py-2 h-10 font-semibold rounded-lg text-white ${isScanning ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"} transition duration-300 disabled:opacity-50`}
+                        >
+                            {isScanning ? "Scanning..." : "AI Scan"}
+                        </button>
+                        <div className="text-right">
+                            <p className="text-xs text-gray-500">Tip: AI scan will extract text but image will be uploaded only on Save.</p>
+                        </div>
+                    </div>
                 </div>
                 {scanError && <p className="text-red-500 text-sm mb-4">{scanError}</p>}
 
-
-                {/* Section 3: Job Form */}
+                {/* Job Form */}
                 <form onSubmit={handleJobUpload}>
                     <div className="mb-4">
                         <label htmlFor="title" className="block text-sm font-medium text-gray-700">Job Title</label>
@@ -358,18 +456,55 @@ const AdminPanel = ({ user }) => {
                         <input type="text" id="company" value={jobCompany} onChange={(e) => setJobCompany(e.target.value)}
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required />
                     </div>
+                    <div className="mb-4">
+                        <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-700">WhatsApp Number (for this vacancy)</label>
+                        <input
+                            type="text"
+                            id="whatsapp"
+                            value={jobWhatsapp}
+                            onChange={(e) => setJobWhatsapp(e.target.value)}
+                            placeholder="e.g. 971501234567 (include country code, no +)"
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Optional. If left empty, site-wide default number will be used.</p>
+                    </div>
                     <div className="mb-6">
                         <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
                         <textarea id="description" rows="6" value={jobDescription} onChange={(e) => setJobDescription(e.target.value)}
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required />
                     </div>
 
-                    {/* Section 4: Submit Button */}
+                    {/* Submit Button */}
                     <button type="submit" disabled={isUploading || !jobTitle}
                         className={`w-full px-4 py-3 font-bold rounded-lg text-white ${isUploading ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"} transition duration-300 disabled:opacity-50`}>
                         {isUploading ? (jobId ? "Updating..." : "Uploading...") : (jobId ? "Job Update Karein" : "Job Ko Database Mein Save Karein")}
                     </button>
                 </form>
+            </div>
+
+            {/* Settings Panel */}
+            <div className="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md mb-8">
+                <h3 className="text-2xl font-bold mb-4">Site Contact Settings</h3>
+                <form onSubmit={handleSaveSettings}>
+                    <div className="mb-4">
+                        <label htmlFor="siteWhatsapp" className="block text-sm font-medium text-gray-700">Default WhatsApp Number</label>
+                        <input type="text" id="siteWhatsapp" value={siteWhatsapp} onChange={(e) => setSiteWhatsapp(e.target.value)}
+                            placeholder="e.g. 971501234567 (include country code, no +)"
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+                        <p className="text-xs text-gray-500 mt-1">Yeh number public site par floating button aur fallback ke liye use hoga.</p>
+                    </div>
+                    <div className="mb-4">
+                        <label htmlFor="siteEmail" className="block text-sm font-medium text-gray-700">Contact Email</label>
+                        <input type="email" id="siteEmail" value={siteContactEmail} onChange={(e) => setSiteContactEmail(e.target.value)}
+                            placeholder="contact@example.com"
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                    <button type="submit" disabled={savingSettings}
+                        className={`px-4 py-2 font-semibold rounded-lg text-white ${savingSettings ? "bg-gray-400" : "bg-indigo-600 hover:bg-indigo-700"} transition duration-300 disabled:opacity-50`}>
+                        {savingSettings ? "Saving..." : "Save Settings"}
+                    </button>
+                </form>
+                {!settingsLoaded && <p className="text-xs text-gray-500 mt-2">Loading settings...</p>}
             </div>
 
             {/* Job Management List */}
@@ -384,6 +519,10 @@ const AdminPanel = ({ user }) => {
                             <div className="flex-1 pr-4">
                                 <p className="font-semibold text-lg text-gray-800">{job.title} ({job.company})</p>
                                 <p className="text-xs text-gray-500">Post Date: {job.createdAt ? new Date(job.createdAt.toDate()).toLocaleDateString() : 'N/A'}</p>
+                                <p className="text-xs text-gray-500 mt-1">WhatsApp: {job.whatsapp_number ? job.whatsapp_number : `Default (${siteWhatsapp || WHATSAPP_NUMBER})`}</p>
+                                {job.image_url && (
+                                    <p className="text-xs text-gray-500 mt-1">Image: <a href={job.image_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View</a></p>
+                                )}
                             </div>
                             <div className="flex space-x-2">
                                 <button onClick={() => handleEdit(job)}
@@ -404,9 +543,8 @@ const AdminPanel = ({ user }) => {
 };
 
 /**
- * === Static Content Page Component ===
- * YEH COMPONENT AAPKE CODE SE MISSING THA (MOVED TO CORRECT POSITION)
- */
+* === Static Content Page Component ===
+*/
 const StaticContentPage = ({ title, content }) => (
     <div className="p-6 bg-gray-50 min-h-screen">
         <div className="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-lg">
@@ -420,13 +558,14 @@ const StaticContentPage = ({ title, content }) => (
     </div>
 );
 
-
 /**
- * === Public Job List Component ===
- */
+* === Public Job List Component ===
+*/
 const PublicJobList = ({ setPage }) => {
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [siteSettings, setSiteSettings] = useState({ whatsapp_number: "", contact_email: "" });
+    const settingsDocRef = doc(db, `/artifacts/${appId}/public/data/settings`, "site");
 
     useEffect(() => {
         if (!db) return;
@@ -435,8 +574,8 @@ const PublicJobList = ({ setPage }) => {
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
             const jobsData = [];
-            querySnapshot.forEach((doc) => {
-                jobsData.push({ id: doc.id, ...doc.data() });
+            querySnapshot.forEach((docSnap) => {
+                jobsData.push({ id: docSnap.id, ...docSnap.data() });
             });
 
             jobsData.sort((a, b) => {
@@ -454,11 +593,34 @@ const PublicJobList = ({ setPage }) => {
         return () => unsubscribe();
     }, []);
 
-    const handleApply = (jobTitle) => {
-        const message = encodeURIComponent(`Hello, I am interested in the position of ${jobTitle} that I saw on your job portal. Please send me more details.`);
-        window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, '_blank');
+    // Load site settings for default contact
+    useEffect(() => {
+        if (!db) return;
+        let mounted = true;
+        const loadSettings = async () => {
+            try {
+                const snap = await getDoc(settingsDocRef);
+                if (snap.exists() && mounted) {
+                    setSiteSettings(snap.data() || {});
+                }
+            } catch (err) {
+                console.error("Public settings load error:", err);
+            }
+        };
+        loadSettings();
+        return () => { mounted = false; };
+    }, []);
+
+    const normalizeForWa = (raw) => {
+        if (!raw) return "";
+        return raw.replace(/\D/g, '');
     };
 
+    const handleApply = (jobTitle, jobWhatsapp) => {
+        const number = normalizeForWa(jobWhatsapp) || normalizeForWa(siteSettings.whatsapp_number) || WHATSAPP_NUMBER;
+        const message = encodeURIComponent(`Hello, I am interested in the position of ${jobTitle} that I saw on your job portal. Please send me more details.`);
+        window.open(`https://wa.me/${number}?text=${message}`, '_blank');
+    };
 
     return (
         <div className="p-6 bg-gray-50 min-h-screen">
@@ -477,10 +639,23 @@ const PublicJobList = ({ setPage }) => {
                             <div>
                                 <h2 className="text-xl font-bold text-blue-700 mb-2">{job.title}</h2>
                                 <h3 className="text-md font-semibold text-gray-700 mb-3">{job.company}</h3>
+
+                                {/* --- BADLAAV: Yahaan Image Dikhayega --- */}
+                                {job.image_url && (
+                                    <img
+                                        src={job.image_url}
+                                        alt={job.title}
+                                        /* BADLAAV: 'h-32' ko 'h-48' kar diya hai */
+                                        className="w-full h-48 object-contain rounded-md my-3"
+                                    />
+                                )}
+                                {/* --- BADLAAV KHATAM --- */}
+
                                 <p className="text-gray-600 text-sm whitespace-pre-wrap line-clamp-4">{job.description}</p>
+
                             </div>
                             <button
-                                onClick={() => handleApply(job.title)}
+                                onClick={() => handleApply(job.title, job.whatsapp_number)}
                                 className="mt-4 w-full bg-green-500 text-white py-2 rounded-lg font-semibold hover:bg-green-600 transition duration-300 flex items-center justify-center text-sm"
                             >
                                 <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M12.039 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-2.039 17.519c-.328 0-.64-.176-.807-.478l-1.397-2.736c-.198-.39.027-.852.455-.916l2.365-.352c.319-.047.632.086.814.336l.542.748c.182.25.44.382.72.382h.001c.291 0 .564-.139.75-.38l2.67-3.486c.216-.282.25-.662.089-.974l-1.02-1.928c-.143-.271-.43-.443-.74-.443h-.001c-.347 0-.66.191-.825.503l-1.144 2.226c-.167.324-.492.532-.843.532h-.001c-.352 0-.678-.208-.845-.532l-.99-1.944c-.266-.523-.082-1.157.433-1.423l4.314-2.22c.241-.124.512-.13.753-.012l3.79 1.761c.287.133.488.423.518.749l.66 4.757c.05.353-.11.71-.397.904l-5.11 3.55c-.297.206-.694.206-.991 0z" /></svg>
@@ -495,9 +670,8 @@ const PublicJobList = ({ setPage }) => {
 };
 
 /**
- * === Admin Login Component ===
- * Yahaan admin login karega.
- */
+* === Admin Login Component ===
+*/
 const AdminLogin = ({ setPage }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -541,7 +715,6 @@ const AdminLogin = ({ setPage }) => {
                             id="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            // FIX: Corrected missing quote.
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             required
                         />
@@ -553,7 +726,6 @@ const AdminLogin = ({ setPage }) => {
                             id="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            // FIX: Corrected missing quote.
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             required
                         />
@@ -575,16 +747,17 @@ const AdminLogin = ({ setPage }) => {
     );
 };
 
-
 /**
- * =========================================================================
- * === Main App Component (Routing) ===
- * =========================================================================
- */
+* =========================================================================
+* === Main App Component (Routing) ===
+* =========================================================================
+*/
 export default function App() {
     const [user, setUser] = useState(null);
     const [page, setPage] = useState('public');
     const [authReady, setAuthReady] = useState(false);
+    const settingsDocRef = doc(db, `/artifacts/${appId}/public/data/settings`, "site");
+    const [siteSettings, setSiteSettings] = useState({ whatsapp_number: "", contact_email: "" });
 
     useEffect(() => {
         if (!auth || !db) {
@@ -623,6 +796,24 @@ export default function App() {
         initAuth();
     }, []);
 
+    // load public settings for header/contact display & fallback
+    useEffect(() => {
+        if (!db) return;
+        let mounted = true;
+        const loadSettings = async () => {
+            try {
+                const snap = await getDoc(settingsDocRef);
+                if (snap.exists() && mounted) {
+                    setSiteSettings(snap.data() || {});
+                }
+            } catch (err) {
+                console.error("App settings load error:", err);
+            }
+        };
+        loadSettings();
+        return () => { mounted = false; };
+    }, []);
+
     useEffect(() => {
         const handleHashChange = () => {
             const hash = window.location.hash;
@@ -656,7 +847,7 @@ export default function App() {
         window.location.hash = '';
     };
 
-    // Static Pages Content (Defined here for centralized management)
+    // Static Pages Content (uses siteSettings for contact)
     const contentData = {
         'about': {
             title: "About Gulf Career Gateway",
@@ -664,7 +855,7 @@ export default function App() {
         },
         'contact': {
             title: "Contact Us",
-            content: `Agar aapke koi sawal ya sujhav hain, toh kripya hamein sampark karein:\n- WhatsApp: +${WHATSAPP_NUMBER}\n- Email: contact@gulfcareergateway.com\n\nHamari team aapki madad karne ke liye hamesha taiyaar hai.`
+            content: `Agar aapke koi sawal ya sujhav hain, toh kripya hamein sampark karein:\n- WhatsApp: +${siteSettings.whatsapp_number || WHATSAPP_NUMBER}\n- Email: ${siteSettings.contact_email || 'contact@gulfcareergateway.com'}\n\nHamari team aapki madad karne ke liye hamesha taiyaar hai.`
         },
         'privacy': {
             title: "Privacy Policy",
@@ -719,7 +910,6 @@ export default function App() {
     } else if (currentPage === 'admin-login') {
         PageComponent = <AdminLogin setPage={setPage} />;
     } else if (contentData[currentPage]) {
-        // FIX: Yeh 'StaticContentPage' component ko call karega
         PageComponent = <StaticContentPage title={contentData[currentPage].title} content={contentData[currentPage].content} />;
     } else {
         PageComponent = <PublicJobList setPage={setPage} />;
@@ -728,7 +918,7 @@ export default function App() {
     // Public Layout
     return (
         <div className="min-h-screen flex flex-col">
-            {/* Header Navigation Bar (FIXED) */}
+            {/* Header Navigation Bar */}
             <nav className="bg-white text-gray-800 p-4 flex justify-between items-center shadow-md sticky top-0 z-10">
                 <a href="#" className="text-2xl font-bold text-blue-700">Gulf Career Gateway</a>
                 <div className="flex space-x-4 items-center text-sm font-semibold">
@@ -749,9 +939,9 @@ export default function App() {
                 {PageComponent}
             </main>
 
-            {/* Floating WhatsApp Button */}
+            {/* Floating WhatsApp Button (uses saved site settings if present) */}
             <a
-                href={`https://wa.me/${WHATSAPP_NUMBER}?text=Hello%2C%20I%20am%20interested%20in%20a%20job%20vacancy%20at%20Gulf%20Career%20Gateway.`}
+                href={`https://wa.me/${(siteSettings.whatsapp_number && siteSettings.whatsapp_number.replace(/\D/g, '')) || WHATSAPP_NUMBER}?text=Hello%2C%20I%20am%20interested%20in%20a%20job%20vacancy%20at%20Gulf%20Career%20Gateway.`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="fixed bottom-6 right-6 w-14 h-14 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-green-600 transition duration-300 z-50"
@@ -760,8 +950,7 @@ export default function App() {
                 <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M12.039 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-2.039 17.519c-.328 0-.64-.176-.807-.478l-1.397-2.736c-.198-.39.027-.852.455-.916l2.365-.352c.319-.047.632.086.814.336l.542.748c.182.25.44.382.72.382h.001c.291 0 .564-.139.75-.38l2.67-3.486c.216-.282.25-.662.089-.974l-1.02-1.928c-.143-.271-.43-.443-.74-.443h-.001c-.347 0-.66.191-.825.503l-1.144 2.226c-.167.324-.492.532-.843.532h-.001c-.352 0-.678-.208-.845-.532l-.99-1.944c-.266-.523-.082-1.157.433-1.423l4.314-2.22c.241-.124.512-.13.753-.012l3.79 1.761c.287.133.488.423.518.749l.66 4.757c.05.353-.11.71-.397.904l-5.11 3.55c-.297.206-.694.206-.991 0z" /></svg>
             </a>
 
-
-            {/* Footer with Policy Links (FIXED) */}
+            {/* Footer */}
             <footer className="bg-gray-800 text-white p-4 text-center text-sm shadow-inner mt-auto">
                 <div className="flex justify-center space-x-6 mb-2">
                     <a href="#privacy" className="hover:text-blue-400 transition duration-300">Privacy Policy</a>

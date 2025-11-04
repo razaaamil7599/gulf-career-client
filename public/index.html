@@ -3,7 +3,6 @@
 
 <head>
   <meta charset="utf-8" />
-  <!-- Yeh line Google Fonts (Inter) ke liye hai -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -12,8 +11,6 @@
   <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
   <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 
-  <!-- YAHAN SE TAILWIND CSS KA CODE SHURU HOTA HAI (FINAL FIX) -->
-  <!-- Hum PostCSS ko chhodkar CDN (internet link) se styling load kar rahe hain -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -32,14 +29,19 @@
       font-family: 'Inter', sans-serif;
     }
   </style>
-  <!-- TAILWIND CSS CODE YAHAN KHATAM HOTA HAI -->
-
   <title>Gulf Career Gateway</title>
 </head>
 
 <body>
   <noscript>You need to enable JavaScript to run this app.</noscript>
   <div id="root"></div>
+
+  <!-- ===== AI CHATBOT CODE (FIXED FOR AUTO-EXPAND) ===== -->
+  <script src="https://www.gstatic.com/dialogflow-console/fast/messenger/bootstrap.js?v=1"></script>
+  <df-messenger chat-title="Gulf-Career-Agent" agent-id="0e9f8a32-e8b0-496b-9cdb-def9805795d6" language-code="en"
+    expand="true"></df-messenger>
+  <!-- ===== AI CHATBOT CODE KHATAM ===== -->
+
 </body>
 
 </html>
