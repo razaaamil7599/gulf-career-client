@@ -2,16 +2,26 @@
 <html lang="en">
 
 <head>
+   
   <meta charset="utf-8" />
+   
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+   
   <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+   
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+   
   <meta name="theme-color" content="#000000" />
+   
   <meta name="description" content="Gulf Career Gateway - AI Powered Job Portal" />
+   
   <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+   
   <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 
+   
   <script src="https://cdn.tailwindcss.com"></script>
+   
   <script>
     tailwind.config = {
       theme: {
@@ -23,24 +33,39 @@
       }
     }
   </script>
-  <style>
+    <style>
     /* Font ko globally set karein */
     body {
       font-family: 'Inter', sans-serif;
     }
   </style>
-  <title>Gulf Career Gateway</title>
+    <title>Gulf Career Gateway</title>
 </head>
 
 <body>
-  <noscript>You need to enable JavaScript to run this app.</noscript>
-  <div id="root"></div>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
 
-  <!-- ===== AI CHATBOT CODE (FIXED FOR AUTO-EXPAND) ===== -->
+    <!-- ===== AI CHATBOT CODE (Updated to NOT auto-expand) ===== -->
+   
   <script src="https://www.gstatic.com/dialogflow-console/fast/messenger/bootstrap.js?v=1"></script>
-  <df-messenger chat-title="Gulf-Career-Agent" agent-id="0e9f8a32-e8b0-496b-9cdb-def9805795d6" language-code="en"
-    expand="true"></df-messenger>
-  <!-- ===== AI CHATBOT CODE KHATAM ===== -->
+   
+    <df-messenger     chat-title="Gulf-Career-Agent"     agent-id="0e9f8a32-e8b0-496b-9cdb-def9805795d6"    
+    language-code="hi">
+      </df-messenger>
+
+   
+  <script>
+    window.addEventListener('dfMessengerLoaded', function (event) {
+      // const dfMessenger = document.querySelector('df-messenger');
+
+      // --- BADLAAV: Ab yeh desktop ya mobile, kahin par bhi automatically NAHI khulega ---
+      // if (window.innerWidth > 768) {
+      //   dfMessenger.setAttribute('expand', 'true');
+      // }
+    });
+  </script>
+    <!-- ===== AI CHATBOT CODE KHATAM ===== -->
 
 </body>
 
