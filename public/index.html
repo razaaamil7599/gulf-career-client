@@ -2,25 +2,35 @@
 <html lang="en">
 
 <head>
+     
    
   <meta charset="utf-8" />
+     
    
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+     
    
   <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+     
    
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+     
    
   <meta name="theme-color" content="#000000" />
+     
    
   <meta name="description" content="Gulf Career Gateway - AI Powered Job Portal" />
+     
    
   <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+     
    
   <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 
+     
    
   <script src="https://cdn.tailwindcss.com"></script>
+     
    
   <script>
     tailwind.config = {
@@ -33,17 +43,26 @@
       }
     }
   </script>
-    <style>
+      <style>
     /* Font ko globally set karein */
     body {
       font-family: 'Inter', sans-serif;
     }
   </style>
-    <title>Gulf Career Gateway</title>
+      <title>Gulf Career Gateway</title>
 
-  <!-- ===== GOOGLE ANALYTICS CODE (Updated with new ID) ===== -->
-  <!-- Google tag (gtag.js) -->
+       
+  <script>(function (w, d, s, l, i) {
+        w[l] = w[l] || []; w[l].push({
+          'gtm.start':
+            new Date().getTime(), event: 'gtm.js'
+        }); var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+            'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+      })(window, document, 'script', 'dataLayer', 'GTM-WCKX7D5');</script>
+           
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DXT1JL1Q2G"></script>
+   
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag() { dataLayer.push(arguments); }
@@ -52,22 +71,25 @@
     // Yahaan aapka naya ID daal diya hai
     gtag('config', 'G-DXT1JL1Q2G'); 
   </script>
-  <!-- ===== GOOGLE ANALYTICS CODE KHATAM ===== -->
-
+   
 </head>
 
 <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
 
-    <!-- ===== AI CHATBOT CODE (Updated to NOT auto-expand) ===== -->
+        <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WCKX7D5"   height="0" width="0"
+      style="display:none;visibility:hidden"></iframe></noscript>
+          <noscript>You need to enable JavaScript to run this app.</noscript>
+      <div id="root"></div>
+
+         
    
   <script src="https://www.gstatic.com/dialogflow-console/fast/messenger/bootstrap.js?v=1"></script>
-   
-    <df-messenger     chat-title="Gulf-Career-Agent"     agent-id="0e9f8a32-e8b0-496b-9cdb-def9805795d6"    
+     
+      <df-messenger     chat-title="Gulf-Career-Agent"     agent-id="0e9f8a32-e8b0-496b-9cdb-def9805795d6"        
     language-code="hi">
-      </df-messenger>
+          </df-messenger>
 
+     
    
   <script>
     window.addEventListener('dfMessengerLoaded', function (event) {
@@ -78,8 +100,7 @@
       // }
     });
   </script>
-    <!-- ===== AI CHATBOT CODE KHATAM ===== -->
-
+     
 </body>
 
 </html>
