@@ -36,6 +36,14 @@ import { uploadToCloudinary } from './upload-cloudinary';
 // Google Generative AI SDK import (kept for AI scan usage)
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+
+// Premium Components
+import VoiceAgent from './components/VoiceAgent';
+import HeroSection from './components/HeroSection';
+import JobCard from './components/JobCard';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+
 // --------- CONFIGURATION (Final) ---------
 
 const firebaseConfigJson =
@@ -480,26 +488,28 @@ const AdminPanel = ({ user }) => {
                 </form>
             </div>
 
-            {/* Settings Panel */}
+            {/* Settings Panel - Enhanced */}
             <div className="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md mb-8">
-                <h3 className="text-2xl font-bold mb-4">Site Contact Settings</h3>
+                <h3 className="text-2xl font-bold mb-4 text-gray-800">📋 Site Contact & Business Settings</h3>
                 <form onSubmit={handleSaveSettings}>
-                    <div className="mb-4">
-                        <label htmlFor="siteWhatsapp" className="block text-sm font-medium text-gray-700">Default WhatsApp Number</label>
-                        <input type="text" id="siteWhatsapp" value={siteWhatsapp} onChange={(e) => setSiteWhatsapp(e.target.value)}
-                            placeholder="e.g. 971501234567 (include country code, no +)"
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
-                        <p className="text-xs text-gray-500 mt-1">Yeh number public site par floating button aur fallback ke liye use hoga.</p>
-                    </div>
-                    <div className="mb-4">
-                        <label htmlFor="siteEmail" className="block text-sm font-medium text-gray-700">Contact Email</label>
-                        <input type="email" id="siteEmail" value={siteContactEmail} onChange={(e) => setSiteContactEmail(e.target.value)}
-                            placeholder="contact@example.com"
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="mb-4">
+                            <label htmlFor="siteWhatsapp" className="block text-sm font-medium text-gray-700">📱 Default WhatsApp Number</label>
+                            <input type="text" id="siteWhatsapp" value={siteWhatsapp} onChange={(e) => setSiteWhatsapp(e.target.value)}
+                                placeholder="e.g. 971501234567"
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+                            <p className="text-xs text-gray-500 mt-1">Country code ke saath, + ke bina</p>
+                        </div>
+                        <div className="mb-4">
+                            <label htmlFor="siteEmail" className="block text-sm font-medium text-gray-700">📧 Contact Email</label>
+                            <input type="email" id="siteEmail" value={siteContactEmail} onChange={(e) => setSiteContactEmail(e.target.value)}
+                                placeholder="contact@example.com"
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+                        </div>
                     </div>
                     <button type="submit" disabled={savingSettings}
-                        className={`px-4 py-2 font-semibold rounded-lg text-white ${savingSettings ? "bg-gray-400" : "bg-indigo-600 hover:bg-indigo-700"} transition duration-300 disabled:opacity-50`}>
-                        {savingSettings ? "Saving..." : "Save Settings"}
+                        className={`px-6 py-3 font-semibold rounded-lg text-white ${savingSettings ? "bg-gray-400" : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"} transition duration-300 disabled:opacity-50`}>
+                        {savingSettings ? "Saving..." : "💾 Save Settings"}
                     </button>
                 </form>
                 {!settingsLoaded && <p className="text-xs text-gray-500 mt-2">Loading settings...</p>}
@@ -557,7 +567,7 @@ const StaticContentPage = ({ title, content }) => (
 /**
  * === Public Job List Component ===
  */
-const PublicJobList = ({ setPage }) => {
+const PublicJobList = ({ setPage, onViewDetails }) => {
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [siteSettings, setSiteSettings] = useState({ whatsapp_number: "", contact_email: "" });
@@ -607,56 +617,162 @@ const PublicJobList = ({ setPage }) => {
         return () => { mounted = false; };
     }, []);
 
-    const normalizeForWa = (raw) => {
-        if (!raw) return "";
-        return raw.replace(/\D/g, '');
-    };
+    return (
+        <div className="min-h-screen bg-slate-950">
+            {/* Hero Section */}
+            <HeroSection jobCount={jobs.length} />
 
-    const handleApply = (jobTitle, jobWhatsapp) => {
-        const number = normalizeForWa(jobWhatsapp) || normalizeForWa(siteSettings.whatsapp_number) || WHATSAPP_NUMBER;
-        const message = encodeURIComponent(`Hello, I am interested in the position of ${jobTitle} that I saw on your job portal. Please send me more details.`);
+            {/* Jobs Section */}
+            <section id="jobs" className="py-20 bg-slate-900">
+                <div className="container mx-auto px-6">
+                    {/* Section Header */}
+                    <div className="text-center mb-12">
+                        <span className="inline-block px-4 py-2 bg-blue-500/20 text-blue-400 rounded-full text-sm font-medium mb-4">
+                            💼 Latest Opportunities
+                        </span>
+                        <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                            Current Job Openings
+                        </h2>
+                        <p className="text-slate-400 max-w-2xl mx-auto">
+                            Browse through our verified job vacancies in Gulf countries.
+                            Apply directly via WhatsApp for quick response.
+                        </p>
+                    </div>
+
+                    {/* Loading State */}
+                    {loading && (
+                        <div className="flex justify-center items-center py-20">
+                            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                    )}
+
+                    {/* No Jobs */}
+                    {!loading && jobs.length === 0 && (
+                        <div className="text-center py-20 bg-slate-800/50 rounded-2xl border border-slate-700">
+                            <span className="text-6xl mb-4 block">📭</span>
+                            <h3 className="text-xl font-semibold text-white mb-2">No Vacancies Available</h3>
+                            <p className="text-slate-400">Check back soon for new opportunities!</p>
+                        </div>
+                    )}
+
+                    {/* Job Cards Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {jobs.map((job, index) => (
+                            <div key={job.id} style={{ animation: `fadeInUp 0.5s ease ${index * 0.1}s backwards` }}>
+                                <JobCard
+                                    job={job}
+                                    siteWhatsapp={siteSettings.whatsapp_number}
+                                    defaultNumber={WHATSAPP_NUMBER}
+                                    onViewDetails={onViewDetails}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Why Choose Us Section */}
+            <section className="py-20 bg-slate-950">
+                <div className="container mx-auto px-6">
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl font-bold text-white mb-4">Why Choose Us?</h2>
+                        <p className="text-slate-400">Trusted by thousands of job seekers</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {[
+                            { icon: '✅', title: 'Verified Jobs', desc: 'All vacancies are verified by our team' },
+                            { icon: '🛡️', title: 'Govt Approved', desc: 'Legal and government approved process' },
+                            { icon: '💬', title: '24/7 Support', desc: 'Round the clock WhatsApp support' }
+                        ].map((item, i) => (
+                            <div key={i} className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition-colors">
+                                <span className="text-4xl mb-4 block">{item.icon}</span>
+                                <h3 className="text-xl font-semibold text-white mb-2">{item.title}</h3>
+                                <p className="text-slate-400">{item.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+        </div>
+    );
+};
+
+/**
+ * === Job Detail Page Component ===
+ */
+const JobDetailPage = ({ job, onBack, siteWhatsapp, defaultNumber }) => {
+    if (!job) return null;
+
+    const handleApply = () => {
+        const number = (job.whatsapp_number || siteWhatsapp || defaultNumber || '971501234567').replace(/\D/g, '');
+        const message = encodeURIComponent(`Hello, I am interested in the position of ${job.title} at ${job.company}. Please send me more details.`);
         window.open(`https://wa.me/${number}?text=${message}`, '_blank');
     };
 
+    const formatDate = (timestamp) => {
+        if (!timestamp) return 'Recent';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+    };
+
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="min-h-screen bg-slate-950 py-8 px-4">
             <div className="max-w-4xl mx-auto">
-                <h1 className="text-4xl font-extrabold text-center mb-8 text-gray-900">Current Openings</h1>
-
-                {loading && <p className="text-center text-gray-600">Loading jobs...</p>}
-
-                {!loading && jobs.length === 0 && (
-                    <p className="text-center text-gray-600 border p-8 mt-10 bg-white rounded-lg shadow">Abhi koi job available nahi hai. Admin panel se nayi job daaliye.</p>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {jobs.map((job) => (
-                        <div key={job.id} className="bg-white p-6 rounded-lg shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300 flex flex-col justify-between">
-                            <div>
-                                <h2 className="text-xl font-bold text-blue-700 mb-2">{job.title}</h2>
-                                <h3 className="text-md font-semibold text-gray-700 mb-3">{job.company}</h3>
-
-                                {/* Image display (increased height) */}
-                                {job.image_url && (
-                                    <img
-                                        src={job.image_url}
-                                        alt={job.title}
-                                        className="w-full h-48 object-contain rounded-md my-3"
-                                    />
-                                )}
-
-                                <p className="text-gray-600 text-sm whitespace-pre-wrap line-clamp-4">{job.description}</p>
-
+                <button onClick={onBack} className="mb-6 flex items-center gap-2 text-blue-400 hover:text-blue-300">
+                    ← Back to All Jobs
+                </button>
+                <div className="bg-slate-800/50 border border-slate-700 rounded-3xl overflow-hidden">
+                    {job.image_url && (
+                        <div className="relative h-64 md:h-80">
+                            <img src={job.image_url} alt={job.title} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
+                        </div>
+                    )}
+                    <div className="p-6 md:p-8">
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            <span className="px-3 py-1 bg-green-500/20 text-green-400 text-sm rounded-lg">✓ Verified</span>
+                            <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm rounded-lg">Full Time</span>
+                        </div>
+                        <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">{job.title}</h1>
+                        <div className="flex items-center gap-3 text-slate-300 mb-6 text-lg">
+                            <span>🏢</span><span className="font-semibold">{job.company}</span>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                            <div className="bg-slate-700/50 rounded-xl p-4 text-center">
+                                <span className="text-2xl block mb-2">📅</span>
+                                <span className="text-slate-400 text-sm">Posted</span>
+                                <span className="text-white font-medium block">{formatDate(job.createdAt)}</span>
                             </div>
-                            <button
-                                onClick={() => handleApply(job.title, job.whatsapp_number)}
-                                className="mt-4 w-full bg-green-500 text-white py-2 rounded-lg font-semibold hover:bg-green-600 transition duration-300 flex items-center justify-center text-sm"
-                            >
-                                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M12.039 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-2.039 17.519c-.328 0-.64-.176-.807-.478l-1.397-2.736c-.198-.39.027-.852.455-.916l2.365-.352c.319-.047.632.086.814.336l.542.748c.182.25.44.382.72.382h.001c.291 0 .564-.139.75-.38l2.67-3.486c.216-.282.25-.662.089-.974l-1.02-1.928c-.143-.271-.43-.443-.74-.443h-.001c-.347 0-.66.191-.825.503l-1.144 2.226c-.167.324-.492.532-.843.532h-.001c-.352 0-.678-.208-.845-.532l-.99-1.944c-.266-.523-.082-1.157.433-1.423l4.314-2.22c.241-.124.512-.13.753-.012l3.79 1.761c.287.133.488.423.518.749l.66 4.757c.05.353-.11.71-.397.904l-5.11 3.55c-.297.206-.694.206-.991 0z" /></svg>
-                                Apply Now (WhatsApp)
+                            <div className="bg-slate-700/50 rounded-xl p-4 text-center">
+                                <span className="text-2xl block mb-2">🌍</span>
+                                <span className="text-slate-400 text-sm">Location</span>
+                                <span className="text-white font-medium block">Gulf</span>
+                            </div>
+                            <div className="bg-slate-700/50 rounded-xl p-4 text-center">
+                                <span className="text-2xl block mb-2">⏰</span>
+                                <span className="text-slate-400 text-sm">Type</span>
+                                <span className="text-white font-medium block">Full Time</span>
+                            </div>
+                            <div className="bg-slate-700/50 rounded-xl p-4 text-center">
+                                <span className="text-2xl block mb-2">✅</span>
+                                <span className="text-slate-400 text-sm">Status</span>
+                                <span className="text-green-400 font-medium block">Available</span>
+                            </div>
+                        </div>
+                        <div className="mb-8">
+                            <h2 className="text-xl font-bold text-white mb-4">📋 Job Description</h2>
+                            <div className="bg-slate-700/30 rounded-xl p-6 text-slate-300 whitespace-pre-wrap leading-relaxed">
+                                {job.description}
+                            </div>
+                        </div>
+                        <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 border border-green-500/30 rounded-2xl p-6 text-center">
+                            <h3 className="text-2xl font-bold text-white mb-2">Interested in this job?</h3>
+                            <p className="text-slate-300 mb-6">Contact us on WhatsApp to apply!</p>
+                            <button onClick={handleApply} className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-lg rounded-2xl hover:scale-105 transition-all">
+                                📱 Apply on WhatsApp
                             </button>
                         </div>
-                    ))}
+                    </div>
                 </div>
             </div>
         </div>
@@ -758,6 +874,7 @@ export default function App() {
     const [user, setUser] = useState(null);
     const [page, setPage] = useState('public');
     const [authReady, setAuthReady] = useState(false);
+    const [selectedJob, setSelectedJob] = useState(null); // For job detail view
     const settingsDocRef = doc(db, `/artifacts/${appId}/public/data/settings`, "site");
     const [siteSettings, setSiteSettings] = useState({ whatsapp_number: "", contact_email: "" });
 
@@ -816,6 +933,25 @@ export default function App() {
         return () => { mounted = false; };
     }, []);
 
+    // Load public jobs for VoiceAgent
+    const [publicJobs, setPublicJobs] = useState([]);
+    const jobsCollectionPath = `/artifacts/${appId}/public/data/jobs`;
+
+    useEffect(() => {
+        if (!db) return;
+        const q = query(collection(db, jobsCollectionPath));
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const jobsData = [];
+            querySnapshot.forEach((docSnap) => {
+                jobsData.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            setPublicJobs(jobsData);
+        }, (error) => {
+            console.error("Public jobs fetch error:", error);
+        });
+        return () => unsubscribe();
+    }, []);
+
     useEffect(() => {
         const handleHashChange = () => {
             const hash = window.location.hash;
@@ -853,77 +989,323 @@ export default function App() {
     // Static Pages Content (uses siteSettings for contact)
     const contentData = {
         'about': {
-            title: "About Gulf Career Gateway",
-            content: "Gulf Career Gateway ek naya platform hai jo AI (Gemini) ka istemaal karke Gulf countries mein job vacancies dhoondhta aur publish karta hai. Hamara mission hai ki job seekers ko aasaan aur tez tareeke se job ki jaankari mile, bina kisi mehnat ke. AI Feature: Hamara Admin Panel job ads ki images ko seedha scan karke text nikalta hai, jisse data entry bahut tez ho jaati hai.\n\nHum koshish karte hain ki sabhi job posts sahi aur up-to-date hon — phir bhi, job ki final responsibility employer par hoti hai. Hum kisi bhi employer ya listing ki guarantee/endorsement nahi karte."
+            title: "🌟 About Gulf Career Gateway",
+            content: `Gulf Career Gateway ek premium AI-powered job portal hai jo specifically Gulf countries (Saudi Arabia, UAE, Qatar, Kuwait, Bahrain, Oman) mein job seekers ko verified job opportunities provide karta hai.
+
+🎯 HAMARA MISSION
+Job seekers ko reliable aur verified Gulf job opportunities provide karna - bilkul transparent aur trustworthy process ke saath.
+
+🚀 KYA HAI HUMARI SPECIALTY?
+
+✅ AI-Powered Job Posting
+Hum latest Gemini AI technology use karte hain jo job advertisements se automatically information extract karta hai - faster aur error-free.
+
+✅ Verified Employers
+Har job listing carefully verify hoti hai genuine employers se.
+
+✅ Complete Support
+Document preparation se lekar visa approval tak - hum har step mein aapke saath hain.
+
+✅ Transparent Process
+Koi hidden charges nahi, koi fake promises nahi - sirf genuine opportunities.
+
+📊 HAMARE STATISTICS
+• 500+ Successful Placements
+• 50+ Active Job Vacancies
+• 15+ Gulf Countries Coverage
+• 24/7 Customer Support
+
+🏢 HAMARE SERVICES
+
+1️⃣ Job Matching - Aapki skills ke according perfect job
+2️⃣ Document Assistance - Passport, Medical, MOFA, Visa
+3️⃣ Interview Preparation - Tips aur guidance
+4️⃣ Travel Arrangement - Ticket aur accommodation help
+5️⃣ Post-Arrival Support - Gulf mein settle hone mein madad
+
+📞 CONTACT KAISE KAREIN?
+WhatsApp: +${siteSettings.whatsapp_number || WHATSAPP_NUMBER}
+Email: ${siteSettings.contact_email || 'contact@gulfcareergateway.com'}
+
+Hum aapki Gulf career journey ko successful banana chahte hain! 🌅`
         },
         'contact': {
-            title: "Contact Us",
-            content: `Agar aapke koi sawal ya sujhav hain, toh kripya hamein sampark karein:\n- WhatsApp: +${siteSettings.whatsapp_number || WHATSAPP_NUMBER}\n- Email: ${siteSettings.contact_email || 'contact@gulfcareergateway.com'}\n\nHamari team aapki madad karne ke liye hamesha taiyaar hai. Business enquiries ke liye email bhejein aur hum aapse contact karenge.`
+            title: "📞 Contact Us",
+            content: `Gulf Career Gateway ki team aapki madad ke liye 24/7 available hai!
+
+📱 WHATSAPP (PREFERRED)
++${siteSettings.whatsapp_number || WHATSAPP_NUMBER}
+Fast response - usually within 30 minutes!
+
+📧 EMAIL
+${siteSettings.contact_email || 'contact@gulfcareergateway.com'}
+Business inquiries aur detailed queries ke liye
+
+⏰ WORKING HOURS
+Monday - Saturday: 9:00 AM - 9:00 PM (IST)
+Sunday: 10:00 AM - 6:00 PM (IST)
+
+🌍 SERVICE AREAS
+• Saudi Arabia (KSA)
+• United Arab Emirates (UAE)
+• Qatar
+• Kuwait
+• Bahrain
+• Oman
+
+💬 QUICK QUERIES
+
+Job Vacancies ke liye:
+WhatsApp karein "JOB" likh ke
+
+Visa Process ke liye:
+WhatsApp karein "VISA" likh ke
+
+Document Help ke liye:
+WhatsApp karein "DOCUMENT" likh ke
+
+🤝 PARTNERSHIPS & BUSINESS
+Agar aap employer hain aur workers recruit karna chahte hain,
+ya aap agent hain aur partnership mein interested hain:
+Email: ${siteSettings.contact_email || 'contact@gulfcareergateway.com'}
+
+Subject: "Business Partnership Inquiry"
+
+Hum jaldi se jaldi aapse contact karenge! 🚀`
         },
         'privacy': {
-            title: "Privacy Policy",
+            title: "🔒 Privacy Policy",
             content:
-                `Last updated: ${new Date().toLocaleDateString()}
+                `Last Updated: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
 
-1. Introduction
-Gulf Career Gateway (\"we\", \"us\", \"our\") aapki privacy ko gambhirta se leta hai. Yeh policy batati hai ki hum kaun sa data collect karte hain, kyun aur kaise use karte hain, aur aapke rights kya hain.
+Gulf Career Gateway ("Company", "we", "us", "our") aapki privacy ko seriously leta hai. Yeh Privacy Policy explain karti hai ki hum aapka personal data kaise collect, use, aur protect karte hain.
 
-2. Data We Collect
-- User provided data: Job postings, images, contact numbers, email addresses jo admin/site users provide karte hain.
-- Automatically collected data: Browser information, IP address, analytics data (agar implement kiya gaya ho).
-- Third-party data: Agar aap WhatsApp link ke through contact karte hain toh hamari site WhatsApp ke through messaging start karti hai; woh interaction WhatsApp ke terms ke under aata hai.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-3. Use of Data
-- Job listings ko store aur display karne ke liye.
-- Site contact aur support communication ke liye.
-- Security and misuse monitoring ke liye.
+📋 SECTION 1: INFORMATION WE COLLECT
 
-4. Storage & Security
-- Hum aapka data Firebase Firestore mein store karte hain. Hum reasonable technical safeguards implement karte hain, lekin koi bhi online method 100% secure nahi hoti.
-- Agar aap chahen ki aapka data remove ho, toh contact karein: ${siteSettings.contact_email || 'contact@gulfcareergateway.com'}.
+1.1 Personal Information (Aap provide karte hain):
+• Full Name aur Contact Details
+• Phone Number / WhatsApp Number
+• Email Address
+• Passport Details (job application ke liye)
+• Educational Qualifications
+• Work Experience
+• Photographs
 
-5. AI Usage
-- Uploaded images ko AI (Gemini) ke through process kiya jaata hai sirf job-related text extraction ke liye.
-- Hum personally identifiable information (PII) ko AI ko bina zaroorat ke feed nahi karte. Agar image mein PII ho, admin se pehle approval zaroori hai.
+1.2 Automatically Collected Information:
+• IP Address aur Browser Type
+• Device Information
+• Website Usage Analytics
+• Cookies aur Similar Technologies
 
-6. Cookies & Tracking
-- Hum minimal cookies use kar sakte hain for basic functionality.
+1.3 Third-Party Information:
+• WhatsApp messaging data (WhatsApp ke terms ke under)
+• Job referrals aur recommendations
 
-7. Third Parties
-- Hum Cloudinary (image hosting), Google (AI), Firebase use karte hain. Unke apne privacy policies lagu hote hain.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-8. Children
-- Hamari service 18+ logon ke liye hai. Agar aap 18 se kam hain, toh humara content use na karein.
+🎯 SECTION 2: HOW WE USE YOUR DATA
 
-9. Changes to Policy
-- Yeh policy update ho sakti hai. Updated date upar di hui hai.
+2.1 Primary Uses:
+• Job matching aur recommendations
+• Application processing
+• Employer ko profile sharing
+• Communication aur updates
 
-Contact: ${siteSettings.contact_email || 'contact@gulfcareergateway.com'}.`
+2.2 Secondary Uses:
+• Service improvement
+• Analytics aur reporting
+• Legal compliance
+• Fraud prevention
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔐 SECTION 3: DATA SECURITY
+
+3.1 Technical Measures:
+• SSL/TLS Encryption
+• Secure Firebase Cloud Storage
+• Regular Security Audits
+• Access Controls
+
+3.2 Organizational Measures:
+• Limited staff access
+• Confidentiality agreements
+• Regular training
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🤖 SECTION 4: AI & TECHNOLOGY
+
+4.1 Gemini AI Usage:
+• Job advertisement text extraction
+• No personal data processing unnecessarily
+• Data minimization principles
+
+4.2 Third-Party Services:
+• Google Cloud (AI Processing)
+• Firebase (Data Storage)
+• Cloudinary (Image Hosting)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👤 SECTION 5: YOUR RIGHTS
+
+Aap hamesha:
+✅ Apna data access kar sakte hain
+✅ Corrections request kar sakte hain
+✅ Deletion request kar sakte hain
+✅ Processing restrict kar sakte hain
+✅ Consent withdraw kar sakte hain
+
+Request ke liye contact karein:
+📧 ${siteSettings.contact_email || 'contact@gulfcareergateway.com'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🍪 SECTION 6: COOKIES
+
+Hum minimal cookies use karte hain:
+• Essential cookies (site functionality)
+• Analytics cookies (optional)
+
+Browser settings se cookies manage kar sakte hain.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👶 SECTION 7: CHILDREN'S PRIVACY
+
+Yeh service 18 saal se upar ke logon ke liye hai.
+Hum knowingly minors ka data collect nahi karte.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 SECTION 8: POLICY UPDATES
+
+Yeh policy kabhi bhi update ho sakti hai.
+Major changes ke baare mein hum notify karenge.
+Regular check karte rahein.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📞 CONTACT FOR PRIVACY CONCERNS
+
+Gulf Career Gateway
+Email: ${siteSettings.contact_email || 'contact@gulfcareergateway.com'}
+WhatsApp: +${siteSettings.whatsapp_number || WHATSAPP_NUMBER}
+
+Aapki privacy hamari priority hai! 🛡️`
         },
         'terms': {
-            title: "Terms of Service",
+            title: "📜 Terms of Service",
             content:
-                `Effective date: ${new Date().toLocaleDateString()}
+                `Effective Date: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
 
-1. Acceptance
-Site ka use kar karne ka matlab aap in Terms ko accept karte hain.
+Gulf Career Gateway ke Terms of Service padhne ke liye shukriya. Website use karne se pehle in terms ko carefully padhein.
 
-2. Service Description
-Yeh platform job listings show karta hai aur admin users ke through job posts manage karta hai. Hum job offers ka verification guarantee nahi karte.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-3. Admin Access
-Admin panel sirf authorized admins ke liye hai. Aapko unauthorized access ke liye liable maana jaa sakta hai.
+✅ SECTION 1: ACCEPTANCE OF TERMS
 
-4. Content Responsibilities
-Jo content upload hota hai (text/images) uska zimma uploader (admin/employer) uthata hai. Aap galat, misleading ya illegal content upload nahi karenge.
+1.1 Is website ko access ya use karke aap in Terms aur Privacy Policy ko accept karte hain.
 
-5. Liability Limitation
-Hum site ke use se hone wale direct/indirect damages ke liye liable nahi rahenge.
+1.2 Agar aap agree nahi karte, toh website use na karein.
 
-6. Governing Law
-Yeh Terms applicable jurisdiction ke laws ke under interpret honge (aap apni jurisdiction add kar sakte hain).
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Contact: ${siteSettings.contact_email || 'contact@gulfcareergateway.com'}.`
+📋 SECTION 2: SERVICE DESCRIPTION
+
+2.1 Gulf Career Gateway provide karta hai:
+• Gulf countries mein job listings
+• AI-powered job matching
+• Employer connections
+• Visa assistance information
+
+2.2 Hum intermediary hain - final employment decision employer ki hoti hai.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👤 SECTION 3: USER RESPONSIBILITIES
+
+Aap agree karte hain ki:
+
+✅ Accurate information provide karenge
+✅ Fake documents nahi denge
+✅ Site ko misuse nahi karenge
+✅ Others ko harm nahi karenge
+✅ Illegal activities mein engage nahi honge
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔐 SECTION 4: ADMIN ACCESS
+
+4.1 Admin panel sirf authorized personnel ke liye hai.
+
+4.2 Unauthorized access attempt criminal offense hai.
+
+4.3 Admin credentials share karna strictly prohibited hai.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️ SECTION 5: DISCLAIMERS
+
+5.1 Job Listings:
+• Accuracy ke liye best efforts karte hain
+• 100% guarantee nahi de sakte
+• Final verification user ki responsibility
+
+5.2 Third Parties:
+• External links ki responsibility nahi
+• Employer actions ke liye liable nahi
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💰 SECTION 6: FEES & PAYMENTS
+
+6.1 Website browsing free hai.
+
+6.2 Service charges jo bhi hon, clearly disclose honge.
+
+6.3 Fraud se bachein - sirf official channels use karein.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚫 SECTION 7: LIMITATION OF LIABILITY
+
+Maximum extent permitted by law:
+
+• Hum direct, indirect, incidental damages ke liye liable nahi
+• Service disruptions ke liye liable nahi
+• Third-party actions ke liye liable nahi
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚖️ SECTION 8: GOVERNING LAW
+
+8.1 Yeh Terms Indian laws ke under governed hain.
+
+8.2 Disputes Indian courts mein resolve honge.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔄 SECTION 9: MODIFICATIONS
+
+9.1 Terms kabhi bhi modify ho sakte hain.
+
+9.2 Continued use = acceptance of new terms.
+
+9.3 Major changes ke notifications denge.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📞 CONTACT
+
+Questions ke liye:
+Email: ${siteSettings.contact_email || 'contact@gulfcareergateway.com'}
+WhatsApp: +${siteSettings.whatsapp_number || WHATSAPP_NUMBER}
+
+Gulf Career Gateway - Your Trusted Gulf Job Partner! 🌅`
         }
     };
 
@@ -979,53 +1361,34 @@ Contact: ${siteSettings.contact_email || 'contact@gulfcareergateway.com'}.`
         PageComponent = <AdminLogin setPage={setPage} setUser={setUser} />;
     } else if (contentData[currentPage]) {
         PageComponent = <StaticContentPage title={contentData[currentPage].title} content={contentData[currentPage].content} />;
+    } else if (selectedJob) {
+        // Show job detail page
+        PageComponent = <JobDetailPage
+            job={selectedJob}
+            onBack={() => setSelectedJob(null)}
+            siteWhatsapp={siteSettings.whatsapp_number}
+            defaultNumber={WHATSAPP_NUMBER}
+        />;
     } else {
-        PageComponent = <PublicJobList setPage={setPage} />;
+        PageComponent = <PublicJobList setPage={setPage} onViewDetails={(job) => setSelectedJob(job)} />;
     }
 
     // Public Layout
     return (
-        <div className="min-h-screen flex flex-col">
-            {/* Header Navigation Bar */}
-            <nav className="bg-white text-gray-800 p-4 flex justify-between items-center shadow-md sticky top-0 z-10">
-                <a href="#" className="text-2xl font-bold text-blue-700">Gulf Career Gateway</a>
-                <div className="flex space-x-4 items-center text-sm font-semibold">
-                    <a href="#" className="hover:text-blue-700">Home</a>
-                    <a href="#about" className="hover:text-blue-700">About Us</a>
-                    <a href="#contact" className="hover:text-blue-700">Contact</a>
-                    <a
-                        href="#admin"
-                        className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition duration-300"
-                    >
-                        Admin Login
-                    </a>
-                </div>
-            </nav>
+        <div className="min-h-screen flex flex-col bg-slate-950">
+            {/* Premium Navbar */}
+            <Navbar setPage={setPage} user={user} onLogout={handleLogout} />
 
             {/* Main Content */}
             <main className="flex-grow">
                 {PageComponent}
             </main>
 
-            {/* Floating WhatsApp Button (uses saved site settings if present) */}
-            <a
-                href={`https://wa.me/${(siteSettings.whatsapp_number && siteSettings.whatsapp_number.replace(/\D/g, '')) || WHATSAPP_NUMBER}?text=Hello%2C%20I%20am%20interested%20in%20a%20job%20vacancy%20at%20Gulf%20Career%20Gateway.`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="fixed bottom-6 right-6 w-14 h-14 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-green-600 transition duration-300 z-50"
-                aria-label="Contact us on WhatsApp"
-            >
-                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M12.039 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-2.039 17.519c-.328 0-.64-.176-.807-.478l-1.397-2.736c-.198-.39.027-.852.455-.916l2.365-.352c.319-.047.632.086.814.336l.542.748c.182.25.44.382.72.382h.001c.291 0 .564-.139.75-.38l2.67-3.486c.216-.282.25-.662.089-.974l-1.02-1.928c-.143-.271-.43-.443-.74-.443h-.001c-.347 0-.66.191-.825.503l-1.144 2.226c-.167.324-.492.532-.843.532h-.001c-.352 0-.678-.208-.845-.532l-.99-1.944c-.266-.523-.082-1.157.433-1.423l4.314-2.22c.241-.124.512-.13.753-.012l3.79 1.761c.287.133.488.423.518.749l.66 4.757c.05.353-.11.71-.397.904l-5.11 3.55c-.297.206-.694.206-.991 0z" /></svg>
-            </a>
+            {/* AI Voice Agent - Auto greets users */}
+            <VoiceAgent siteWhatsapp={siteSettings.whatsapp_number || WHATSAPP_NUMBER} jobs={publicJobs} />
 
-            {/* Footer */}
-            <footer className="bg-gray-800 text-white p-4 text-center text-sm shadow-inner mt-auto">
-                <div className="flex justify-center space-x-6 mb-2">
-                    <a href="#privacy" className="hover:text-blue-400 transition duration-300">Privacy Policy</a>
-                    <a href="#terms" className="hover:text-blue-400 transition duration-300">Terms of Service</a>
-                </div>
-                <p>&copy; {new Date().getFullYear()} Gulf Career Gateway. All Rights Reserved.</p>
-            </footer>
+            {/* Premium Footer */}
+            <Footer siteSettings={siteSettings} />
         </div>
     );
 }
