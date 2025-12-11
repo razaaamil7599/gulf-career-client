@@ -43,6 +43,10 @@ import HeroSection from './components/HeroSection';
 import JobCard from './components/JobCard';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+
+// Analytics Service
+import { initAnalytics, getAnalytics } from './services/analyticsService';
 
 // --------- CONFIGURATION (Final) ---------
 
@@ -875,8 +879,44 @@ export default function App() {
     const [page, setPage] = useState('public');
     const [authReady, setAuthReady] = useState(false);
     const [selectedJob, setSelectedJob] = useState(null); // For job detail view
+    const [showAnalytics, setShowAnalytics] = useState(false); // Analytics dashboard toggle
     const settingsDocRef = doc(db, `/artifacts/${appId}/public/data/settings`, "site");
     const [siteSettings, setSiteSettings] = useState({ whatsapp_number: "", contact_email: "" });
+
+    // Initialize Analytics
+    useEffect(() => {
+        if (db && authReady) {
+            const analytics = initAnalytics(db, appId);
+            if (analytics) {
+                analytics.trackSessionStart();
+                analytics.trackPageView('home');
+
+                // Track session end when user leaves
+                const handleBeforeUnload = () => {
+                    analytics.trackSessionEnd();
+                };
+                window.addEventListener('beforeunload', handleBeforeUnload);
+                return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+            }
+        }
+    }, [authReady]);
+
+    // Track page changes
+    useEffect(() => {
+        const analytics = getAnalytics();
+        if (analytics && page) {
+            analytics.trackPageView(page);
+        }
+    }, [page]);
+
+    // Handler for job view with tracking
+    const handleViewJobDetails = (job) => {
+        const analytics = getAnalytics();
+        if (analytics && job) {
+            analytics.trackJobView(job);
+        }
+        setSelectedJob(job);
+    };
 
     useEffect(() => {
         if (!auth || !db) {
@@ -1341,6 +1381,13 @@ Gulf Career Gateway - Your Trusted Gulf Job Partner! 🌅`
                     <h1 className="text-xl font-bold">Admin Panel</h1>
                     <div className="flex items-center space-x-4">
                         <button
+                            onClick={() => setShowAnalytics(!showAnalytics)}
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition duration-300 ${showAnalytics ? 'bg-purple-600 hover:bg-purple-700' : 'bg-indigo-600 hover:bg-indigo-700'
+                                }`}
+                        >
+                            {showAnalytics ? '📝 Jobs Panel' : '📊 Analytics'}
+                        </button>
+                        <button
                             onClick={() => { setPage('public'); }}
                             className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-sm font-semibold transition duration-300"
                         >
@@ -1354,7 +1401,7 @@ Gulf Career Gateway - Your Trusted Gulf Job Partner! 🌅`
                         </button>
                     </div>
                 </nav>
-                <AdminPanel user={user} />
+                {showAnalytics ? <AnalyticsDashboard db={db} appId={appId} /> : <AdminPanel user={user} />}
             </div>
         );
     } else if (currentPage === 'admin-login') {
@@ -1370,7 +1417,7 @@ Gulf Career Gateway - Your Trusted Gulf Job Partner! 🌅`
             defaultNumber={WHATSAPP_NUMBER}
         />;
     } else {
-        PageComponent = <PublicJobList setPage={setPage} onViewDetails={(job) => setSelectedJob(job)} />;
+        PageComponent = <PublicJobList setPage={setPage} onViewDetails={handleViewJobDetails} />;
     }
 
     // Public Layout

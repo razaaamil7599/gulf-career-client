@@ -1,8 +1,16 @@
 import React from 'react';
+import { getAnalytics } from '../services/analyticsService';
 
 const JobCard = ({ job, siteWhatsapp, defaultNumber, onViewDetails }) => {
     const handleApply = (e) => {
         e.stopPropagation(); // Prevent card click
+
+        // Track WhatsApp click
+        const analytics = getAnalytics();
+        if (analytics) {
+            analytics.trackWhatsAppClick(job, 'job_card');
+        }
+
         const number = (job.whatsapp_number || siteWhatsapp || defaultNumber || '971501234567').replace(/\D/g, '');
         const message = encodeURIComponent(`Hello, I am interested in the position of ${job.title} that I saw on Gulf Career Gateway. Please send me more details.`);
         window.open(`https://wa.me/${number}?text=${message}`, '_blank');

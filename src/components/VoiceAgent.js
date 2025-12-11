@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getAnalytics } from '../services/analyticsService';
 
 /**
  * AI Voice Agent v4.0 - With Gemini AI
@@ -398,6 +399,17 @@ The WhatsApp number is: ${siteWhatsapp}. Say it DIGIT BY DIGIT like: "${siteWhat
 
             // Get AI response
             const aiResponse = await getAIResponse(transcript);
+
+            // Track conversation in analytics
+            const analytics = getAnalytics();
+            if (analytics) {
+                analytics.trackAgentInteraction('message', {
+                    userMessage: transcript,
+                    aiResponse: aiResponse,
+                    language: selectedLanguage
+                });
+            }
+
             speak(aiResponse, startListening);
         };
 
@@ -420,6 +432,13 @@ The WhatsApp number is: ${siteWhatsapp}. Say it DIGIT BY DIGIT like: "${siteWhat
     const handleStart = () => {
         setShowWelcome(false);
         setIsActive(true);
+
+        // Track agent session start
+        const analytics = getAnalytics();
+        if (analytics) {
+            analytics.trackAgentInteraction('started', { language: selectedLanguage });
+        }
+
         setTimeout(() => {
             speak(lang.greeting, startListening);
         }, 500);
