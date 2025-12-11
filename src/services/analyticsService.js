@@ -84,20 +84,21 @@ class AnalyticsService {
         }
 
         try {
-            const response = await fetch('https://ip-api.com/json/?fields=status,country,countryCode,region,regionName,city,zip,lat,lon,isp,query');
+            // Using ipapi.co which supports HTTPS (free tier: 1000 requests/day)
+            const response = await fetch('https://ipapi.co/json/');
             if (response.ok) {
                 const data = await response.json();
-                if (data.status === 'success') {
+                if (!data.error) {
                     const locationInfo = {
-                        ip: data.query,
-                        country: data.country,
-                        countryCode: data.countryCode,
-                        region: data.regionName,
+                        ip: data.ip,
+                        country: data.country_name,
+                        countryCode: data.country_code,
+                        region: data.region,
                         city: data.city,
-                        zip: data.zip,
-                        lat: data.lat,
-                        lon: data.lon,
-                        isp: data.isp
+                        zip: data.postal,
+                        lat: data.latitude,
+                        lon: data.longitude,
+                        isp: data.org
                     };
                     // Cache for this session
                     sessionStorage.setItem('gcg_location', JSON.stringify(locationInfo));
