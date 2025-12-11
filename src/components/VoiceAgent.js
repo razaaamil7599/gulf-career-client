@@ -470,62 +470,56 @@ The WhatsApp number is: ${siteWhatsapp}. Say it DIGIT BY DIGIT like: "${siteWhat
     // RENDER
     // ============================================
 
-    // Welcome screen
-    if (showWelcome) {
+    // Small floating button - DEFAULT VIEW (doesn't block content!)
+    if (showWelcome || isMinimized) {
         return (
-            <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-6 md:w-80 z-50">
-                <div className="bg-gradient-to-br from-slate-900 to-slate-800 md:rounded-3xl shadow-2xl border-t md:border border-slate-700 overflow-hidden">
-                    <div className="p-3 bg-slate-800/50 flex justify-center gap-2">
-                        {Object.entries(languages).map(([code, l]) => (
-                            <button
-                                key={code}
-                                onClick={() => handleLanguageChange(code)}
-                                className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-all ${selectedLanguage === code ? 'bg-green-600 scale-110 ring-2 ring-green-400' : 'bg-slate-700 hover:bg-slate-600'
-                                    }`}
-                            >
-                                {l.flag}
-                            </button>
-                        ))}
+            <div className="fixed bottom-4 right-4 z-50">
+                {/* Small Floating Button */}
+                <button
+                    onClick={() => {
+                        setShowWelcome(false);
+                        setIsMinimized(false);
+                        setIsActive(true);
+                        setTimeout(() => {
+                            speak(lang.greeting, startListening);
+                        }, 500);
+
+                        // Track
+                        const analytics = getAnalytics();
+                        if (analytics) {
+                            analytics.trackAgentInteraction('started', { language: selectedLanguage });
+                        }
+                    }}
+                    className="group relative"
+                >
+                    {/* Pulsing ring animation */}
+                    <div className="absolute inset-0 w-16 h-16 rounded-full bg-green-500 animate-ping opacity-25"></div>
+
+                    {/* Main button */}
+                    <div className="relative w-16 h-16 rounded-full overflow-hidden ring-4 ring-green-500 shadow-2xl hover:scale-110 transition-transform bg-gradient-to-br from-green-500 to-emerald-600">
+                        <img src="/ai-assistant.png" alt="AI" className="w-full h-full object-cover" />
                     </div>
 
-                    <div className="p-8 text-center">
-                        <div className="w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden ring-4 ring-green-500 shadow-xl">
-                            <img src="/ai-assistant.png" alt="AI Assistant" className="w-full h-full object-cover" />
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="bg-slate-800 text-white text-sm px-3 py-2 rounded-xl shadow-lg whitespace-nowrap">
+                            🎤 {lang.welcomeText}
                         </div>
-                        <h2 className="text-2xl font-bold text-white mb-2">{lang.welcomeTitle}</h2>
-                        <p className="text-slate-400 mb-6">{lang.welcomeText}</p>
-
-                        <button
-                            onClick={handleStart}
-                            className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xl font-bold rounded-2xl hover:scale-105 transition-transform shadow-lg"
-                        >
-                            {lang.startBtn}
-                        </button>
                     </div>
+                </button>
 
-                    <div className="p-3 border-t border-slate-700 text-center">
-                        <button onClick={() => { setShowWelcome(false); setIsMinimized(true); }} className="text-slate-500 text-sm hover:text-slate-300">
-                            Skip (baad mein baat karein)
-                        </button>
+                {/* Small greeting text - auto hide after 5 seconds */}
+                {showWelcome && (
+                    <div className="absolute bottom-full right-0 mb-3 animate-bounce">
+                        <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white text-sm px-4 py-2 rounded-2xl shadow-lg max-w-[200px]">
+                            👋 {selectedLanguage === 'hi-IN' ? 'नमस्ते! मदद चाहिए?' : 'Hi! Need help?'}
+                            <div className="text-xs opacity-75 mt-1">Tap to talk 🎤</div>
+                        </div>
+                        {/* Arrow pointing to button */}
+                        <div className="absolute -bottom-2 right-6 w-0 h-0 border-l-8 border-r-8 border-t-8 border-transparent border-t-emerald-600"></div>
                     </div>
-                </div>
+                )}
             </div>
-        );
-    }
-
-    // Minimized
-    if (isMinimized) {
-        return (
-            <button
-                onClick={() => {
-                    setIsMinimized(false);
-                    setIsActive(true);
-                    speak('Haan boliye, main sun rahi hun.', startListening);
-                }}
-                className="fixed bottom-6 left-6 w-16 h-16 rounded-full overflow-hidden ring-4 ring-green-500 shadow-2xl hover:scale-110 transition-transform z-50"
-            >
-                <img src="/ai-assistant.png" alt="AI" className="w-full h-full object-cover" />
-            </button>
         );
     }
 
